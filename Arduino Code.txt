@@ -1,0 +1,72 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <ESP32Servo.h>
+
+Servo servoPuerta; // Servo para la puerta
+Servo servoVentana; // Servo para la ventana
+
+const char *ssid = "OPPO A57";
+const char *password = "d8y8vcjs";
+const char *apiUrl = "http://172.20.10.7:3001/api/usuario/datos";
+
+WiFiClient client;
+
+void setup() {
+  Serial.begin(115200);
+  servoPuerta.attach(2); // Asigna el pin del servo para la puerta
+  servoVentana.attach(4); // Asigna el pin del servo para la ventana
+
+  // Conectar a Wi-Fi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Conectando a Wi-Fi...");
+  }
+
+  Serial.println("Conectado a Wi-Fi!");
+}
+
+void loop() {
+  // Abre la puerta
+  servoPuerta.write(0);
+  Serial.println("Abriendo la puerta...");
+  delay(1000);
+
+  // Abre la ventana
+  servoVentana.write(0);
+  Serial.println("Abriendo la ventana...");
+  delay(1000);
+  
+  // Cierra la puerta
+  servoPuerta.write(180);
+  Serial.println("Cerrando la puerta...");
+  delay(1000);
+
+  // Cierra la ventana
+  servoVentana.write(180);
+  Serial.println("Cerrando la ventana...");
+  delay(1000);
+  
+  // Crear el JSON con los datos a enviar
+  const char *jsonToSend = "{\"action\":\"update_status\",\"door\":\"closed\",\"window\":\"closed\"}"; // Ejemplo de datos
+
+  // Realizar la solicitud POST a la API
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    http.begin(client, apiUrl);
+    http.addHeader("Content-Type", "application/json");
+    int httpResponseCode = http.POST(jsonToSend);
+    if (httpResponseCode > 0) {
+      Serial.print("Respuesta de la API: ");
+      Serial.println(http.getString());
+    } else {
+      Serial.print("Error en la solicitud: ");
+      Serial.println(httpResponseCode);
+    }
+    http.end();
+  } else {
+    Serial.println("Error al conectar a Wi-Fi");
+  }
+
+  delay(5000); // Esperar 5 segundos antes de enviar la siguiente solicitud
+}
